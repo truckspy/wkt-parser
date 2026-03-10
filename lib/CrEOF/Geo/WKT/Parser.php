@@ -109,7 +109,7 @@ class Parser
         $this->match(Lexer::T_EQUALS);
         $this->match(Lexer::T_INTEGER);
 
-        $srid = $this->lexer->value();
+        $srid = (int) $this->lexer->value();
 
         $this->match(Lexer::T_SEMICOLON);
 
@@ -139,7 +139,7 @@ class Parser
         $this->type = $type;
 
         if ($this->lexer->isNextTokenAny(array(Lexer::T_Z, Lexer::T_M, Lexer::T_ZM))) {
-            $this->match($this->lexer->lookahead['type']);
+            $this->match($this->lexer->lookahead->type);
 
             $this->dimension = $this->lexer->value();
         }
@@ -213,7 +213,9 @@ class Parser
     {
         $this->match(($this->lexer->isNextToken(Lexer::T_FLOAT) ? Lexer::T_FLOAT : Lexer::T_INTEGER));
 
-        return $this->lexer->value();
+        // Cast string back to numeric — values are stored as strings for
+        // doctrine/lexer 3.0 Token compatibility, but callers expect int|float.
+        return $this->lexer->value() + 0;
     }
 
     /**
@@ -349,7 +351,7 @@ class Parser
      */
     protected function match($token)
     {
-        $lookaheadType = $this->lexer->lookahead['type'];
+        $lookaheadType = $this->lexer->lookahead->type;
 
         if ($lookaheadType !== $token && ($token !== Lexer::T_TYPE || $lookaheadType <= Lexer::T_TYPE)) {
             throw $this->syntaxError($this->lexer->getLiteral($token));
@@ -369,10 +371,10 @@ class Parser
     {
         $expected = sprintf('Expected %s, got', $expected);
         $token    = $this->lexer->lookahead;
-        $found    = null === $this->lexer->lookahead ? 'end of string.' : sprintf('"%s"', $token['value']);
+        $found    = null === $token ? 'end of string.' : sprintf('"%s"', $token->value);
         $message  = sprintf(
             '[Syntax Error] line 0, col %d: Error: %s %s in value "%s"',
-            isset($token['position']) ? $token['position'] : '-1',
+            null !== $token ? $token->position : -1,
             $expected,
             $found,
             $this->input

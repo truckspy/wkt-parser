@@ -84,20 +84,20 @@ class Lexer extends AbstractLexer
      */
     public function value()
     {
-        return $this->token['value'];
+        return $this->token->value;
     }
 
     /**
-     * @param string $value
+     * @param string|int &$value
      *
      * @return int
      */
-    protected function getType(&$value)
+    protected function getType(string|int &$value): int
     {
         if (is_numeric($value)) {
-            $value += 0;
-
-            if (is_int($value)) {
+            // Keep $value as string for doctrine/lexer 3.0 compatibility
+            // (Token::__construct requires string|int, not float)
+            if (str_contains($value, '.') === false && str_contains($value, 'e') === false) {
                 return self::T_INTEGER;
             }
 
